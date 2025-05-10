@@ -31,6 +31,7 @@ async function run() {
 
     //jobs related apis
     const jobsCollection = client.db('jobPortal').collection('jobs');
+    const jobApplicationsCollection = client.db('jobPortal').collection('jobApplications');
 
     app.get('/jobs', async (req, res) => {
       const cursor = jobsCollection.find();
@@ -45,7 +46,36 @@ async function run() {
       res.send(result);
     })
 
-    
+    app.get('/job-application', async (req, res) => {
+      const email = req.query.email;
+      const query = { applicant_email : email };
+      const result = await jobApplicationsCollection.find(query).toArray();
+
+      for(const application of result) {
+        const query1 = {_id: new ObjectId(application.job_id)}
+        const job = await jobsCollection.findOne(query1);
+
+        if(job){
+          application.title = job.title;
+          application.company = job.company;
+          application.location = job.location;        
+          application.company_logo = job.company_logo;
+          application.category = job.category;
+          application.jobType = job.jobType;
+        }
+      }
+
+      res.send(result);
+    })
+
+    app.post('/job-applications', async (req, res) => {
+      const jobApplication = req.body;
+      const result = await jobApplicationsCollection.insertOne(jobApplication);
+      res.send(result);
+    })
+
+
+
   } finally {
     // Ensures that the client will close when you finish/error
     //await client.close();
@@ -54,10 +84,10 @@ async function run() {
 run().catch(console.dir);
 
 
-app.get('/', (req, res) => {           
+app.get('/', (req, res) => {
   res.send('Hello World!');
 })
 
 app.listen(port, () => {
-    console.log(`Server is running on http://localhost:${port}`);
-    });
+  console.log(`Server is running on http://localhost:${port}`);
+});
