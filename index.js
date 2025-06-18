@@ -98,6 +98,26 @@ async function run() {
       }
     });
     
+
+    // After you’ve defined jobsCollection and jobApplicationsCollection...
+app.get('/stats', async (req, res) => {
+  try {
+    const jobsCount = await jobsCollection.countDocuments();
+    const applicationsCount = await jobApplicationsCollection.countDocuments();
+    // If you track companies in a separate collection, count that too:
+    // const companiesCount = await client.db('jobPortal').collection('companies').countDocuments();
+
+    res.json({
+      jobsPosted: jobsCount,
+      applicationsReceived: applicationsCount,
+      // companiesOnboarded: companiesCount
+    });
+  } catch (err) {
+    console.error('Error fetching stats:', err);
+    res.status(500).json({ message: 'Could not fetch stats' });
+  }
+});
+
     
 
   } finally {
