@@ -1,116 +1,91 @@
 const express = require('express');
 const mongoose = require('mongoose');
 const cors = require('cors');
-const app = express();
 require('dotenv').config();
-const port = process.env.PORT || 3000;
-const { MongoClient, ServerApiVersion, ObjectId } = require('mongodb');
 
 const Job = require('./job.js');
+
+const app = express();
+const port = process.env.PORT || 3000;
 
 app.use(cors());
 app.use(express.json());
 
+// Connect to MongoDB using Mongoose
+mongoose.connect(
+  `mongodb+srv://${process.env.DB_User}:${process.env.DB_Pass}@cluster0.nka8sja.mongodb.net/jobPortal?retryWrites=true&w=majority&appName=Cluster0`,
+  {
+    useNewUrlParser: true,
+    useUnifiedTopology: true,
+  }
+)
+.then(() => console.log('✅ Mongoose connected to MongoDB Atlas'))
+.catch((err) => console.error('❌ Mongoose connection error:', err));
 
+// ROUTES
 
-const uri = `mongodb+srv://${process.env.DB_User}:${process.env.DB_Pass}@cluster0.nka8sja.mongodb.net/jobPortal?retryWrites=true&w=majority&appName=Cluster0`
-
-// Create a MongoClient with a MongoClientOptions object to set the Stable API version
-const client = new MongoClient(uri, {
-  serverApi: {
-    version: ServerApiVersion.v1,
-    strict: true,
-    deprecationErrors: true,
-  },
+// GET all jobs (no status filter)
+app.get('/jobs', async (req, res) => {
+  try {
+    const jobs = await Job.find();
+    res.send(jobs);
+  } catch (error) {
+    console.error(error);
+    res.status(500).send({ message: 'Server error' });
+  }
 });
 
-// ✅ Correct Mongoose connection
-mongoose.connect(uri, {
-  useNewUrlParser: true,
-  useUnifiedTopology: true
-})
-.then(() => console.log('✅ Mongoose connected to MongoDB Atlas'))
-.catch(err => console.error('❌ Mongoose connection error:', err));
-
-async function run() {
+// GET job by ID
+app.get('/jobs/:id', async (req, res) => {
   try {
-    // Connect the client to the server	(optional starting in v4.7)
-    await client.connect();
-    // Send a ping to confirm a successful connection
-    await client.db("admin").command({ ping: 1 });
-    console.log("Pinged your deployment. You successfully connected to MongoDB!");
+    const job = await Job.findById(req.params.id);
+    if (!job) return res.status(404).send({ message: 'Job not found' });
+    res.send(job);
+  } catch (error) {
+    res.status(500).send({ message: 'Server error' });
+  }
+});
 
-    //jobs related apis
-    const jobsCollection = client.db('jobPortal').collection('jobs');
-    const jobApplicationsCollection = client.db('jobPortal').collection('jobApplications');
+// POST a new job (default status = "user")
+app.post('/jobs', async (req, res) => {
+  try {
+    if (!req.body.status) {
+      req.body.status = 'user'; // default for user-added jobs
+    }
+    console.log('Received job:', req.body);
+    const newJob = new Job(req.body);
+    const savedJob = await newJob.save();
+    console.log('Saved job:', savedJob);
+    res.status(201).send({ message: 'Job added successfully' });
+  } catch (error) {
+    console.error('Error saving job:', error);
+    res.status(500).send({ message: 'Server error' });
+  }
+});
 
-    app.get('/jobs', async (req, res) => {
-      const cursor = jobsCollection.find();
-      const result = await cursor.toArray();
-      res.send(result);
-    });
+// Job Applications (in-memory for now)
+const jobApplications = [];
 
-    app.get('/jobs/:id', async (req, res) => {
-      const id = req.params.id;
-      const query = { _id: new ObjectId(id) };
-      const result = await jobsCollection.findOne(query);
-      res.send(result);
-    })
+app.get('/job-application', (req, res) => {
+  const email = req.query.email;
+  const result = jobApplications.filter((app) => app.applicant_email === email);
+  res.send(result);
+});
 
-    app.get('/job-application', async (req, res) => {
-      const email = req.query.email;
-      const query = { applicant_email : email };
-      const result = await jobApplicationsCollection.find(query).toArray();
+app.post('/job-applications', (req, res) => {
+  jobApplications.push(req.body);
+  res.send({ message: 'Application added' });
+});
 
-      for(const application of result) {
-        const query1 = {_id: new ObjectId(application.job_id)}
-        const job = await jobsCollection.findOne(query1);
-
-        if(job){
-          application.title = job.title;
-          application.company = job.company;
-          application.location = job.location;        
-          application.company_logo = job.company_logo;
-          application.category = job.category;
-          application.jobType = job.jobType;
-        }
-      }
-
-      res.send(result);
-    })
-
-    app.post('/job-applications', async (req, res) => {
-      const jobApplication = req.body;
-      const result = await jobApplicationsCollection.insertOne(jobApplication);
-      res.send(result);
-    })
-
-    app.post('/jobs', async (req, res) => {
-      try {
-        console.log('Received job:', req.body); // Debug
-        const newJob = new Job(req.body);
-        const savedJob = await newJob.save();
-        console.log('Saved job:', savedJob); // Debug
-        res.status(201).send({ message: 'Job added successfully' });
-      } catch (error) {
-        console.error('Error saving job:', error);
-        res.status(500).send({ message: 'Server error' });
-      }
-    });
-    
-
-    // After you’ve defined jobsCollection and jobApplicationsCollection...
+// Stats route
 app.get('/stats', async (req, res) => {
   try {
-    const jobsCount = await jobsCollection.countDocuments();
-    const applicationsCount = await jobApplicationsCollection.countDocuments();
-    // If you track companies in a separate collection, count that too:
-    // const companiesCount = await client.db('jobPortal').collection('companies').countDocuments();
+    const jobsCount = await Job.countDocuments();
+    const applicationsCount = jobApplications.length;
 
     res.json({
       jobsPosted: jobsCount,
       applicationsReceived: applicationsCount,
-      // companiesOnboarded: companiesCount
     });
   } catch (err) {
     console.error('Error fetching stats:', err);
@@ -118,20 +93,12 @@ app.get('/stats', async (req, res) => {
   }
 });
 
-    
-
-  } finally {
-    // Ensures that the client will close when you finish/error
-    //await client.close();
-  }
-}
-run().catch(console.dir);
-
-
+// Root route
 app.get('/', (req, res) => {
   res.send('Hello World!');
-})
+});
 
+// Start server
 app.listen(port, () => {
-  console.log(`Server is running on http://localhost:${port}`);
+  console.log(`🚀 Server is running on http://localhost:${port}`);
 });
