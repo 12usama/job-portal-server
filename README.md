@@ -1,56 +1,68 @@
-# Job Portal Server
+# 💼 Job Portal Backend
 
-This is the backend server for the Job Portal application. It provides REST APIs to manage job postings, job applications, and application statistics.
-
----
-
-## Deployment
-This server is deployed on Vercel and accessible at:
-(https://job-portal-server-xi-one.vercel.app/)
----
-
-## Features
-
-- Connects to MongoDB Atlas using Mongoose  
-- Provides endpoints to fetch all jobs, fetch job details by ID, add new jobs  
-- Supports job applications submission and retrieval  
-- Provides statistics on jobs posted and applications received  
-- Handles CORS and JSON payloads  
+This is the backend for **Job Portal**, a job posting and application management platform.  
+It handles all server-side logic including job posting, applications, and statistics.
 
 ---
 
-## Technologies Used
+## 🚀 Live Server
+
+The backend is deployed at: [https://job-portal-server-xi-one.vercel.app/](https://job-portal-server-xi-one.vercel.app/)
+
+---
+
+## 🛠️ Tech Stack
 
 - Node.js  
 - Express.js  
-- MongoDB Atlas  
+- MongoDB  
 - Mongoose  
 - CORS  
 - dotenv  
 
 ---
 
-## Getting Started
+## 🔧 Installation
 
-### Prerequisites
+```bash
+git clone https://github.com/12usama/job-portal-server.git
+cd job-portal-server
+npm install
+nodemon index.js
+```
 
-- Node.js installed (v14 or above recommended)  
-- MongoDB Atlas account with a database cluster  
-- `.env` file in the project root containing:
-   DB_User=yourMongoDBUsername
-   DB_Pass=yourMongoDBPassword
-   PORT=3000 # optional, default is 3000
 ---
 
+## ⚙️ Environment Variables
 
-### Installation & Running Locally
+Create a `.env` file in the root directory with the following values:
 
-1. Clone the repository  
- ```bash
- git clone https://github.com/12usama/job-portal-server.git
- cd job-portal-server
+```env
+PORT=5000
+DB_User=your_mongodb_username
+DB_Pass=your_mongodb_password
+```
+
 ---
 
+## 📁 Folder Structure
 
+```
+job-portal-server/
+├── job.js
+├── .env
+├── server.js
+```
 
+---
 
+## 🔗 Frontend Repository
+
+You can find the frontend code here: [Job Portal Frontend](https://github.com/12usama/job-portal-client)
+
+---
+
+🙋‍♂️ Author  
+Md. Usama Alam Ridwane  
+💼 [LinkedIn](https://www.linkedin.com/in/md-usama-alam-ridwane-376b3a1a4/)  
+📧 usamaridwane@gmail.com  
